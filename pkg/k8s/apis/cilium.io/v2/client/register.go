@@ -584,6 +584,7 @@ var (
 		"ServiceSelector":          ServiceSelector,
 		"spec":                     spec,
 		"specs":                    specs,
+		"status":                   status,
 	}
 
 	CIDR = apiextensionsv1beta1.JSONSchemaProps{
@@ -1460,6 +1461,58 @@ var (
 	description = apiextensionsv1beta1.JSONSchemaProps{
 		Description: "Description is a description of the policy.",
 		Type:        "string",
+	}
+
+	status = apiextensionsv1beta1.JSONSchemaProps{
+		Description: "Status of the policy.",
+		Type:        "object",
+		Properties: map[string]apiextensionsv1beta1.JSONSchemaProps{
+			"nodes": {
+				Description: "",
+				Type:        "array",
+				Items: &apiextensionsv1beta1.JSONSchemaPropsOrArray{
+					Schema: &nodeStatus,
+				},
+			},
+			"derivativePolicies": {
+				Description: "",
+				Type:        "array",
+				Items: &apiextensionsv1beta1.JSONSchemaPropsOrArray{
+					Schema: &nodeStatus,
+				},
+			},
+		},
+	}
+
+	nodeStatus = apiextensionsv1beta1.JSONSchemaProps{
+		Description: "Status of the policy on a given node",
+		Type:        "object",
+		Properties: map[string]apiextensionsv1beta1.JSONSchemaProps{
+			"ok": {
+				Description: "OK is true if the policy has been parsed and imported successfully.",
+				Type:        "boolean",
+			},
+			"error": {
+				Description: "Error contains any error that occurred when parsing, importing, or realizing the policy.",
+				Type:        "string",
+			},
+			// "lastUpdated": {
+			// 	Description: "LastUpdated represents the last time this status was updated.",
+			// 	Type: "",
+			// },
+			"revision": {
+				Description: "Revision is the policy revision of the repository which first implemented this policy.",
+				Type:        "integer",
+			},
+			"enforcing": {
+				Description: "Enforcing is true once all endpoints are enforcing this policy.",
+				Type:        "boolean",
+			},
+			// "annotations": {
+			// 	Description: ,
+			// 	Type: "object",
+			// },
+		},
 	}
 )
 
