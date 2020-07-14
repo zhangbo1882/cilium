@@ -204,8 +204,9 @@ func runCNPNodeStatusGC(name string, clusterwide bool, ciliumNodeStore *store.Sh
 					for _, cnp := range cnpItemsList {
 						needsUpdate := false
 						nodesToDelete := map[string]cilium_v2.Timestamp{}
-						for n, status := range cnp.Status.Nodes {
-							kvStoreNodeName := nodeTypes.GetKeyNodeName(option.Config.ClusterName, n)
+						var newNodeStatuses []cilium_v2.CiliumNetworkPolicyNodeStatus
+						for _, status := range cnp.Status.Nodes {
+							kvStoreNodeName := nodeTypes.GetKeyNodeName(option.Config.ClusterName, status.Node)
 							if _, exists := kvStoreNodes[kvStoreNodeName]; !exists {
 								// To avoid concurrency issues where a is
 								// created and adds its CNP Status before the operator
@@ -214,12 +215,14 @@ func runCNPNodeStatusGC(name string, clusterwide bool, ciliumNodeStore *store.Sh
 								// from the CNP Status if the last time it was
 								// update was before the lastRun.
 								if status.LastUpdated.Before(lastRun) {
-									nodesToDelete[n] = status.LastUpdated
-									delete(cnp.Status.Nodes, n)
+									nodesToDelete[status.Node] = status.LastUpdated
 									needsUpdate = true
+									continue
 								}
 							}
+							newNodeStatuses = append(newNodeStatuses, status)
 						}
+						cnp.Status.Nodes = newNodeStatuses
 						if needsUpdate {
 							wg.Add(1)
 							cnpCpy := cnp.DeepCopy()

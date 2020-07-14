@@ -111,17 +111,20 @@ func (in *CiliumNetworkPolicy) DeepEqual(other *CiliumNetworkPolicy) bool {
 // +deepequal-gen=true
 type CiliumNetworkPolicyStatus struct {
 	// Nodes is the Cilium policy status for each node
-	Nodes map[string]CiliumNetworkPolicyNodeStatus `json:"nodes,omitempty"`
+	Nodes []CiliumNetworkPolicyNodeStatus `json:"nodes,omitempty"`
 
 	// DerivativePolicies is the status of all policies derived from the Cilium
 	// policy
-	DerivativePolicies map[string]CiliumNetworkPolicyNodeStatus `json:"derivativePolicies,omitempty"`
+	DerivativePolicies []CiliumNetworkPolicyNodeStatus `json:"derivativePolicies,omitempty"`
 }
 
 // CiliumNetworkPolicyNodeStatus is the status of a Cilium policy rule for a
 // specific node
 // +deepequal-gen=true
 type CiliumNetworkPolicyNodeStatus struct {
+	// Node is the name of the node whose status this is.
+	Node string `json:node`
+
 	// OK is true when the policy has been parsed and imported successfully
 	// into the in-memory policy repository on the node.
 	OK bool `json:"ok,omitempty"`
@@ -153,8 +156,9 @@ type CiliumNetworkPolicyNodeStatus struct {
 
 // CreateCNPNodeStatus returns a CiliumNetworkPolicyNodeStatus created from the
 // provided fields
-func CreateCNPNodeStatus(enforcing, ok bool, cnpError error, rev uint64, annotations map[string]string) CiliumNetworkPolicyNodeStatus {
+func CreateCNPNodeStatus(nodeName string, enforcing, ok bool, cnpError error, rev uint64, annotations map[string]string) CiliumNetworkPolicyNodeStatus {
 	cnpns := CiliumNetworkPolicyNodeStatus{
+		Node:        nodeName,
 		Enforcing:   enforcing,
 		Revision:    rev,
 		OK:          ok,
@@ -217,24 +221,29 @@ func (r *CiliumNetworkPolicy) GetPolicyStatus(nodeName string) CiliumNetworkPoli
 	if r.Status.Nodes == nil {
 		return CiliumNetworkPolicyNodeStatus{}
 	}
-	return r.Status.Nodes[nodeName]
+	for _, nodeStatus := range r.Status.Nodes {
+		if nodeStatus.Node == nodeName {
+			return nodeStatus
+		}
+	}
+	return CiliumNetworkPolicyNodeStatus{}
 }
 
 // SetPolicyStatus sets the given policy status for the given nodes' map
-func (r *CiliumNetworkPolicy) SetPolicyStatus(nodeName string, cnpns CiliumNetworkPolicyNodeStatus) {
+func (r *CiliumNetworkPolicy) SetPolicyStatus(cnpns CiliumNetworkPolicyNodeStatus) {
 	if r.Status.Nodes == nil {
-		r.Status.Nodes = map[string]CiliumNetworkPolicyNodeStatus{}
+		r.Status.Nodes = []CiliumNetworkPolicyNodeStatus{}
 	}
-	r.Status.Nodes[nodeName] = cnpns
+	r.Status.Nodes = append(r.Status.Nodes, cnpns)
 }
 
 // SetDerivedPolicyStatus set the derivative policy status for the given
 // derivative policy name.
-func (r *CiliumNetworkPolicy) SetDerivedPolicyStatus(derivativePolicyName string, status CiliumNetworkPolicyNodeStatus) {
+func (r *CiliumNetworkPolicy) SetDerivedPolicyStatus(status CiliumNetworkPolicyNodeStatus) {
 	if r.Status.DerivativePolicies == nil {
-		r.Status.DerivativePolicies = map[string]CiliumNetworkPolicyNodeStatus{}
+		r.Status.DerivativePolicies = []CiliumNetworkPolicyNodeStatus{}
 	}
-	r.Status.DerivativePolicies[derivativePolicyName] = status
+	r.Status.DerivativePolicies = append(r.Status.DerivativePolicies, status)
 }
 
 // AnnotationsEquals returns true if ObjectMeta.Annotations of each

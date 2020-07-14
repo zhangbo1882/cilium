@@ -193,6 +193,9 @@ func (in *CiliumNetworkPolicyNodeStatus) DeepEqual(other *CiliumNetworkPolicyNod
 		return false
 	}
 
+	if in.Node != other.Node {
+		return false
+	}
 	if in.OK != other.OK {
 		return false
 	}
@@ -249,13 +252,9 @@ func (in *CiliumNetworkPolicyStatus) DeepEqual(other *CiliumNetworkPolicyStatus)
 		if len(*in) != len(*other) {
 			return false
 		} else {
-			for key, inValue := range *in {
-				if otherValue, present := (*other)[key]; !present {
+			for i, inElement := range *in {
+				if !inElement.DeepEqual(&(*other)[i]) {
 					return false
-				} else {
-					if !inValue.DeepEqual(&otherValue) {
-						return false
-					}
 				}
 			}
 		}
@@ -270,13 +269,9 @@ func (in *CiliumNetworkPolicyStatus) DeepEqual(other *CiliumNetworkPolicyStatus)
 		if len(*in) != len(*other) {
 			return false
 		} else {
-			for key, inValue := range *in {
-				if otherValue, present := (*other)[key]; !present {
+			for i, inElement := range *in {
+				if !inElement.DeepEqual(&(*other)[i]) {
 					return false
-				} else {
-					if !inValue.DeepEqual(&otherValue) {
-						return false
-					}
 				}
 			}
 		}

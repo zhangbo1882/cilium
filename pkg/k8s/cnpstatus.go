@@ -198,7 +198,7 @@ func (c *CNPStatusEventHandler) StopStatusHandler(cnp *types.SlimCNP) {
 func (c *CNPStatusEventHandler) runStatusHandler(cnpKey string, cnp *types.SlimCNP, nodeStatusUpdater *NodeStatusUpdater) {
 	namespace := cnp.Namespace
 	name := cnp.Name
-	nodeStatusMap := make(map[string]cilium_v2.CiliumNetworkPolicyNodeStatus)
+	var nodeStatuses []cilium_v2.CiliumNetworkPolicyNodeStatus
 
 	scopedLog := log.WithFields(logrus.Fields{
 		logfields.K8sNamespace:            namespace,
@@ -226,7 +226,7 @@ func (c *CNPStatusEventHandler) runStatusHandler(cnpKey string, cnp *types.SlimC
 				continue
 			}
 			// extract nodeName from keyName
-			nodeStatusMap[cnpns.Node] = cnpns.CiliumNetworkPolicyNodeStatus
+			nodeStatuses = append(nodeStatuses, cnpns.CiliumNetworkPolicyNodeStatus)
 		}
 	}
 	for {
@@ -243,7 +243,7 @@ func (c *CNPStatusEventHandler) runStatusHandler(cnpKey string, cnp *types.SlimC
 			case <-nodeStatusUpdater.stopChan:
 				return
 			case <-limit:
-				if len(nodeStatusMap) == 0 {
+				if len(nodeStatuses) == 0 {
 					// If nothing to update, wait until we have something to update.
 					limit = nil
 					continue
@@ -253,7 +253,7 @@ func (c *CNPStatusEventHandler) runStatusHandler(cnpKey string, cnp *types.SlimC
 				if !ok {
 					return
 				}
-				nodeStatusMap[ev.node] = *ev.CiliumNetworkPolicyNodeStatus
+				nodeStatuses = append(nodeStatuses, *ev.CiliumNetworkPolicyNodeStatus)
 				// If limit was set to nil then we can brake this
 				// for loop as soon we have a CNPNS update from the kvstore.
 				if limit == nil {
@@ -291,7 +291,7 @@ func (c *CNPStatusEventHandler) runStatusHandler(cnpKey string, cnp *types.SlimC
 		// Now that we have collected all events for
 		// the given CNP, update the status for all nodes
 		// which have sent us updates.
-		if err = updateStatusesByCapabilities(CiliumClient(), k8sversion.Capabilities(), cnp, namespace, name, nodeStatusMap); err != nil {
+		if err = updateStatusesByCapabilities(CiliumClient(), k8sversion.Capabilities(), cnp, namespace, name, nodeStatuses); err != nil {
 			scopedLog.WithError(err).Error("error updating status for CNP")
 		}
 	}

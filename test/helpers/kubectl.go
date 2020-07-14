@@ -2810,7 +2810,7 @@ func (kub *Kubectl) CiliumPolicyAction(namespace, filepath string, action Resour
 	kub.Logger().Infof("Performing %s action on resource '%s'", action, filepath)
 
 	if status := kub.Action(action, filepath, namespace); !status.WasSuccessful() {
-		return "", status.GetErr(fmt.Sprintf("Cannot perform '%s' on resorce '%s'", action, filepath))
+		return "", status.GetErr(fmt.Sprintf("Cannot perform '%s' on resource '%s'", action, filepath))
 	}
 
 	// If policy is uninstalled we can't require a policy being enforced.

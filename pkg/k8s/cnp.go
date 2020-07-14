@@ -337,10 +337,10 @@ func (c *CNPStatusUpdateContext) updateViaAPIServer(cnp *types.SlimCNP, enforcin
 	// this as part of the status.
 	delete(annotations, v1.LastAppliedConfigAnnotation)
 
-	cnpns = cilium_v2.CreateCNPNodeStatus(enforcing, ok, cnpError, rev, annotations)
+	cnpns = cilium_v2.CreateCNPNodeStatus(c.NodeName, enforcing, ok, cnpError, rev, annotations)
 
 	ns := k8sUtils.ExtractNamespace(&cnp.ObjectMeta)
-	return updateStatusesByCapabilities(c.CiliumNPClient, capabilities, cnp, ns, cnp.GetName(), map[string]cilium_v2.CiliumNetworkPolicyNodeStatus{c.NodeName: cnpns})
+	return updateStatusesByCapabilities(c.CiliumNPClient, capabilities, cnp, ns, cnp.GetName(), []cilium_v2.CiliumNetworkPolicyNodeStatus{cnpns})
 
 }
 
@@ -386,7 +386,7 @@ func (c *CNPStatusUpdateContext) updateViaKVStore(ctx context.Context, cnp *type
 	// this as part of the status.
 	delete(annotations, v1.LastAppliedConfigAnnotation)
 
-	cnpns = cilium_v2.CreateCNPNodeStatus(enforcing, ok, cnpError, rev, annotations)
+	cnpns = cilium_v2.CreateCNPNodeStatus(nodeTypes.GetName(), enforcing, ok, cnpError, rev, annotations)
 
 	cnpWithMeta := CNPNSWithMeta{
 		Name:                          cnp.GetName(),
@@ -462,7 +462,7 @@ func (c CNPNSWithMeta) GetName() string {
 // nodeStatuses for the CNP. Note that the nodeStatuses map will be updated in
 // this function. After this function returns, if non-empty, it will contain the
 // set of node status updates which failed / did not occur.
-func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sversion.ServerCapabilities, cnp *types.SlimCNP, ns, name string, nodeStatuses map[string]cilium_v2.CiliumNetworkPolicyNodeStatus) error {
+func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sversion.ServerCapabilities, cnp *types.SlimCNP, ns, name string, nodeStatuses []cilium_v2.CiliumNetworkPolicyNodeStatus) error {
 	var err error
 	switch {
 	case capabilities.Patch:
@@ -529,7 +529,7 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 			// update.
 			for len(nodeStatuses) != 0 {
 				var (
-					nodeNamesUsed            []string
+					nodeNamesUnused          []cilium_v2.CiliumNetworkPolicyNodeStatus
 					numPatches               int
 					createStatusAndNodePatch []JSONPatch
 				)
@@ -541,22 +541,25 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 					createStatusAndNodePatch = make([]JSONPatch, 0, MaxJSONPatchOperations)
 				}
 
-				for nodeName, nodeStatus := range nodeStatuses {
+				for _, nodeStatus := range nodeStatuses {
 
 					if numPatches > MaxJSONPatchOperations {
 						break
 					}
 					nodePatch := JSONPatch{
 						OP:    "replace",
-						Path:  "/status/nodes/" + nodeName,
+						Path:  "/status/nodes/" + nodeStatus.Node,
 						Value: nodeStatus,
 					}
 					createStatusAndNodePatch = append(createStatusAndNodePatch, nodePatch)
 					numPatches += 1
-					// Track which names we've used to delete them from the map
-					// if patching succeeds later.
-					nodeNamesUsed = append(nodeNamesUsed, nodeName)
 				}
+				// Track which names we haven't used to remove others from the map
+				// if patching succeeds later.
+				for _, nodeStatus := range nodeStatuses[numPatches:] {
+					nodeNamesUnused = append(nodeNamesUnused, nodeStatus)
+				}
+
 				createStatusAndNodePatchJSON, err = json.Marshal(createStatusAndNodePatch)
 				if err != nil {
 					return err
@@ -589,9 +592,7 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 
 				// Patch succeeded, we can remove from the set of NodeStatuses
 				// to update.
-				for _, nodeName := range nodeNamesUsed {
-					delete(nodeStatuses, nodeName)
-				}
+				nodeStatuses = nodeNamesUnused
 			}
 		}
 	case capabilities.UpdateStatus:
@@ -600,8 +601,8 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 		}
 		// k8s < 1.13 has minimal support for JSON patch where kube-apiserver
 		// can print Error messages and even panic in k8s < 1.10.
-		for nodeName, cnpns := range nodeStatuses {
-			cnp.SetPolicyStatus(nodeName, cnpns)
+		for _, cnpns := range nodeStatuses {
+			cnp.SetPolicyStatus(cnpns)
 		}
 
 		if ns == "" {
@@ -620,8 +621,8 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 		}
 		// k8s < 1.13 has minimal support for JSON patch where kube-apiserver
 		// can print Error messages and even panic in k8s < 1.10.
-		for nodeName, cnpns := range nodeStatuses {
-			cnp.SetPolicyStatus(nodeName, cnpns)
+		for _, cnpns := range nodeStatuses {
+			cnp.SetPolicyStatus(cnpns)
 		}
 
 		if ns == "" {
@@ -639,8 +640,6 @@ func updateStatusesByCapabilities(client clientset.Interface, capabilities k8sve
 	}
 	// Updating succeeded - the updated map can be 'emptied' of updates that
 	// we need to propagate.
-	for k := range nodeStatuses {
-		delete(nodeStatuses, k)
-	}
+	nodeStatuses = nil
 	return nil
 }

@@ -319,16 +319,16 @@ func (in *CiliumNetworkPolicyStatus) DeepCopyInto(out *CiliumNetworkPolicyStatus
 	*out = *in
 	if in.Nodes != nil {
 		in, out := &in.Nodes, &out.Nodes
-		*out = make(map[string]CiliumNetworkPolicyNodeStatus, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]CiliumNetworkPolicyNodeStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.DerivativePolicies != nil {
 		in, out := &in.DerivativePolicies, &out.DerivativePolicies
-		*out = make(map[string]CiliumNetworkPolicyNodeStatus, len(*in))
-		for key, val := range *in {
-			(*out)[key] = *val.DeepCopy()
+		*out = make([]CiliumNetworkPolicyNodeStatus, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	return

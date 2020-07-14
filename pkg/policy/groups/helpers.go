@@ -111,6 +111,7 @@ func updateOrCreateCNP(cnp *cilium_v2.CiliumNetworkPolicy) (*cilium_v2.CiliumNet
 
 func updateDerivativeStatus(cnp *cilium_v2.CiliumNetworkPolicy, derivativeName string, err error) error {
 	status := cilium_v2.CiliumNetworkPolicyNodeStatus{
+		Node:        derivativeName,
 		LastUpdated: cilium_v2.NewTimestamp(),
 		Enforcing:   false,
 	}
@@ -137,7 +138,7 @@ func updateDerivativeStatus(cnp *cilium_v2.CiliumNetworkPolicy, derivativeName s
 		groupsCNPCache.DeleteCNP(k8sCNPStatus)
 		return fmt.Errorf("Policy UID mistmatch")
 	}
-	k8sCNPStatus.SetDerivedPolicyStatus(derivativeName, status)
+	k8sCNPStatus.SetDerivedPolicyStatus(status)
 	groupsCNPCache.UpdateCNP(k8sCNPStatus)
 	// TODO: switch to JSON Patch
 	_, err = k8s.CiliumClient().CiliumV2().CiliumNetworkPolicies(cnp.ObjectMeta.Namespace).UpdateStatus(context.TODO(), cnp, v1.UpdateOptions{})
