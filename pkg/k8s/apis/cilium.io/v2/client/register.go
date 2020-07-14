@@ -88,6 +88,7 @@ func createCNPCRD(clientset apiextensionsclient.Interface) error {
 	var (
 		// CustomResourceDefinitionShortNames are the abbreviated names to refer to this CRD's instances
 		CustomResourceDefinitionShortNames = []string{"cnp", "ciliumnp"}
+		preserveUnknownFields              = false
 	)
 
 	res := &apiextensionsv1beta1.CustomResourceDefinition{
@@ -109,8 +110,9 @@ func createCNPCRD(clientset apiextensionsclient.Interface) error {
 			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
 				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
 			},
-			Scope:      apiextensionsv1beta1.NamespaceScoped,
-			Validation: CNPCRV,
+			Scope:                 apiextensionsv1beta1.NamespaceScoped,
+			Validation:            CNPCRV,
+			PreserveUnknownFields: &preserveUnknownFields,
 		},
 	}
 	// Kubernetes < 1.12 does not support having the field Type set in the root
@@ -129,6 +131,7 @@ func createCCNPCRD(clientset apiextensionsclient.Interface) error {
 	var (
 		// CustomResourceDefinitionShortNames are the abbreviated names to refer to this CRD's instances
 		CustomResourceDefinitionShortNames = []string{"ccnp"}
+		preserveUnknownFields              = false
 	)
 
 	res := &apiextensionsv1beta1.CustomResourceDefinition{
@@ -150,8 +153,9 @@ func createCCNPCRD(clientset apiextensionsclient.Interface) error {
 			Subresources: &apiextensionsv1beta1.CustomResourceSubresources{
 				Status: &apiextensionsv1beta1.CustomResourceSubresourceStatus{},
 			},
-			Scope:      apiextensionsv1beta1.ClusterScoped,
-			Validation: CCNPCRV,
+			Scope:                 apiextensionsv1beta1.ClusterScoped,
+			Validation:            CCNPCRV,
+			PreserveUnknownFields: &preserveUnknownFields,
 		},
 	}
 	// Kubernetes < 1.12 does not support having the field Type set in the root
