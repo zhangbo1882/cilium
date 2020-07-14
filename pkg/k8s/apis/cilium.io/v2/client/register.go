@@ -563,6 +563,7 @@ var (
 	}
 
 	properties = map[string]apiextensionsv1beta1.JSONSchemaProps{
+		"description":              description,
 		"CIDR":                     CIDR,
 		"CIDRRule":                 CIDRRule,
 		"EgressRule":               EgressRule,
@@ -1454,6 +1455,11 @@ var (
 		Items: &apiextensionsv1beta1.JSONSchemaPropsOrArray{
 			Schema: &spec,
 		},
+	}
+
+	description = apiextensionsv1beta1.JSONSchemaProps{
+		Description: "Description is a description of the policy.",
+		Type:        "string",
 	}
 )
 
