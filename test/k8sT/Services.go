@@ -1172,7 +1172,7 @@ var _ = Describe("K8sServicesTest", func() {
 				// compatible with externalTrafficPolicy=Local because traffic
 				// from pods to remote nodes goes through the tunnel.
 				// This issue is tracked at #12542.
-				"global.hostFirewall": "false",
+				"global.hostFirewall": "true",
 			})
 			testExternalTrafficPolicyLocal()
 		})
