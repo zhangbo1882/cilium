@@ -50,6 +50,7 @@ static __always_inline bool redirect_to_proxy(int verdict, __u8 dir)
 }
 #endif
 
+#ifdef ENABLE_CUSTOM_CALLS
 static __always_inline void
 encode_custom_prog_meta(struct __ctx_buff *ctx, __u32 ret, int direction,
 			int identity)
@@ -61,6 +62,7 @@ encode_custom_prog_meta(struct __ctx_buff *ctx, __u32 ret, int direction,
 	custom_meta += (direction & 0x1) << 31;
 	ctx_store_meta(ctx, CB_CUSTOM_CALLS, ret);
 }
+#endif
 
 #ifdef ENABLE_IPV6
 static __always_inline int ipv6_l3_from_lxc(struct __ctx_buff *ctx,
@@ -768,8 +770,10 @@ int tail_handle_ipv4(struct __ctx_buff *ctx)
 		return send_drop_notify(ctx, SECLABEL, dstID, 0, ret,
 					CTX_ACT_DROP, METRIC_EGRESS);
 
+#ifdef ENABLE_CUSTOM_CALLS
 	encode_custom_prog_meta(ctx, ret, dstID, CUSTOM_CALLS_IDX_EGRESS);
 	tail_call_static(ctx, &CUSTOM_CALLS_MAP, CUSTOM_CALLS_IDX_EGRESS);
+#endif
 
 	return ret;
 }
@@ -1259,8 +1263,10 @@ int tail_ipv4_policy(struct __ctx_buff *ctx)
 	/* Store meta: essential for proxy ingress, see bpf_host.c */
 	ctx_store_meta(ctx, CB_PROXY_MAGIC, ctx->mark);
 
+#ifdef ENABLE_CUSTOM_CALLS
 	encode_custom_prog_meta(ctx, ret, src_label, CUSTOM_CALLS_IDX_INGRESS);
 	tail_call_static(ctx, &CUSTOM_CALLS_MAP, CUSTOM_CALLS_IDX_INGRESS);
+#endif
 
 	return ret;
 }
@@ -1321,8 +1327,10 @@ out:
 		return send_drop_notify(ctx, src_identity, SECLABEL, LXC_ID,
 					ret, CTX_ACT_DROP, METRIC_INGRESS);
 
+#ifdef ENABLE_CUSTOM_CALLS
 	encode_custom_prog_meta(ctx, ret, src_identity, CUSTOM_CALLS_IDX_INGRESS);
 	tail_call_static(ctx, &CUSTOM_CALLS_MAP, CUSTOM_CALLS_IDX_INGRESS);
+#endif
 
 	return ret;
 }
