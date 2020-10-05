@@ -10,6 +10,7 @@ RUN apk add --no-cache \
   curl \
   bash \
   make \
+  git \
   && true
 
 COPY install-protoplugins.sh /tmp/install-protoplugins.sh
