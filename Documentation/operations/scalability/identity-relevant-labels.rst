@@ -20,22 +20,23 @@ application.
 
 By default, Cilium evaluates the following labels:
 
-=================================== ==================================================
+=================================== =====================================================
 Label                               Description
------------------------------------ --------------------------------------------------
+----------------------------------- -----------------------------------------------------
 ``reserved:.*``                     Include all ``reserved`` labels
-``k8s:io.kubernetes.pod.namespace`` Include all ``io.kubernetes.pod.namespace`` labels
-``k8s:app.kubernetes.io``           Include all ``app.kubernetes.io`` labels
-``k8s:!io.kubernetes``              Ignore all ``io.kubernetes`` labels
-``k8s:!kubernetes.io``              Ignore all other ``kubernetes.io`` labels
-``k8s:!beta.kubernetes.io``         Ignore all ``beta.kubernetes.io`` labels
-``k8s:!k8s.io``                     Ignore all ``k8s.io`` labels
-``k8s:!pod-template-generation``    Ignore all ``pod-template-generation`` labels
-``k8s:!pod-template-hash``          Ignore all ``pod-template-hash`` labels
-``k8s:!controller-revision-hash``   Ignore all ``controller-revision-hash`` labels
-``k8s:!annotation.*``               Ignore all ``annotation labels``
-``k8s:!etcd_node``                  Ignore all ``etcd_node`` labels
-=================================== ==================================================
+``:io.kubernetes.pod.namespace``    Include all ``io.kubernetes.pod.namespace`` labels
+``:io.cilium.k8s.namespace.labels`` Include all ``io.cilium.k8s.namespace.labels`` labels
+``:app.kubernetes.io``              Include all ``app.kubernetes.io`` labels
+``!:io.kubernetes``                 Ignore all ``io.kubernetes`` labels
+``!:kubernetes.io``                 Ignore all other ``kubernetes.io`` labels
+``!:beta.kubernetes.io``            Ignore all ``beta.kubernetes.io`` labels
+``!:k8s.io``                        Ignore all ``k8s.io`` labels
+``!:pod-template-generation``       Ignore all ``pod-template-generation`` labels
+``!:pod-template-hash``             Ignore all ``pod-template-hash`` labels
+``!:controller-revision-hash``      Ignore all ``controller-revision-hash`` labels
+``!:annotation.*``                  Ignore all ``annotation labels``
+``!:etcd_node``                     Ignore all ``etcd_node`` labels
+=================================== =====================================================
 
 
 
