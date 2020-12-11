@@ -493,6 +493,9 @@ func (mgr *EndpointManager) AddHostEndpoint(ctx context.Context, owner regenerat
 		return err
 	}
 
+	node.SetEndpointID(ep.GetID())
+	log.Infof("Setting host endpoint ID to %d (%d)", node.GetEndpointID(), ep.GetID())
+
 	epLabels := labels.Labels{}
 	epLabels.MergeLabels(labels.LabelHost)
 

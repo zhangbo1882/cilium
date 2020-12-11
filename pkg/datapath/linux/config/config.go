@@ -530,7 +530,6 @@ func (h *HeaderfileWriter) writeStaticData(fw io.Writer, e datapath.EndpointConf
 		}
 		// Dummy value to avoid being optimized when 0
 		fmt.Fprint(fw, defineUint32("SECCTX_FROM_IPCACHE", 1))
-		fmt.Fprint(fw, defineUint32("HOST_EP_ID", uint32(e.GetID())))
 	} else {
 		// We want to ensure that the template BPF program always has "LXC_IP"
 		// defined and present as a symbol in the resulting object file after
@@ -554,6 +553,8 @@ func (h *HeaderfileWriter) writeStaticData(fw io.Writer, e datapath.EndpointConf
 		fmt.Fprint(fw, defineIPv4("LXC_IPV4", e.IPv4Address()))
 		fmt.Fprint(fw, defineUint32("LXC_ID", uint32(e.GetID())))
 	}
+
+	fmt.Fprint(fw, defineUint32("HOST_EP_ID", uint32(node.GetEndpointID())))
 
 	fmt.Fprint(fw, defineMAC("NODE_MAC", e.GetNodeMAC()))
 

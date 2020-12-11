@@ -11,6 +11,8 @@
 
 #define EVENT_SOURCE HOST_EP_ID
 
+#define TEMPLATE_HOST_EP_ID 0xffff
+
 /* These are configuration options which have a default value in their
  * respective header files and must thus be defined beforehand:
  */
@@ -1106,5 +1108,109 @@ out:
 
 	return ret;
 }
+
+#ifdef ENABLE_HOST_FIREWALL
+static __always_inline int
+to_host_from_lxc(struct __ctx_buff *ctx __maybe_unused)
+{
+	int ret = CTX_ACT_OK;
+	__u32 srcID = 0;
+	__u16 proto = 0;
+
+	if (!validate_ethertype(ctx, &proto)) {
+		ret = DROP_UNSUPPORTED_L2;
+		goto out;
+	}
+
+	switch (proto) {
+# if defined ENABLE_ARP_PASSTHROUGH || defined ENABLE_ARP_RESPONDER
+	case bpf_htons(ETH_P_ARP):
+		ret = CTX_ACT_OK;
+		break;
+# endif
+# ifdef ENABLE_IPV6
+	case bpf_htons(ETH_P_IPV6):
+		ret = ipv6_host_policy_ingress(ctx, &srcID);
+		break;
+# endif
+# ifdef ENABLE_IPV4
+	case bpf_htons(ETH_P_IP):
+		ret = ipv4_host_policy_ingress(ctx, &srcID);
+		break;
+# endif
+	default:
+		ret = DROP_UNKNOWN_L3;
+		break;
+	}
+
+out:
+	if (IS_ERR(ret))
+		return send_drop_notify_error(ctx, srcID, ret, CTX_ACT_DROP,
+					      METRIC_INGRESS);
+	return ret;
+}
+
+static __always_inline int
+from_host_to_lxc(struct __ctx_buff *ctx)
+{
+	int ret = CTX_ACT_OK;
+	__u16 proto = 0;
+
+	if (!validate_ethertype(ctx, &proto))
+		return DROP_UNSUPPORTED_L2;
+
+	switch (proto) {
+# if defined ENABLE_ARP_PASSTHROUGH || defined ENABLE_ARP_RESPONDER
+	case bpf_htons(ETH_P_ARP):
+		ret = CTX_ACT_OK;
+		break;
+# endif
+# ifdef ENABLE_IPV6
+	case bpf_htons(ETH_P_IPV6):
+		ret = ipv6_host_policy_egress(ctx, HOST_ID);
+		break;
+# endif
+# ifdef ENABLE_IPV4
+	case bpf_htons(ETH_P_IP):
+		/* The last parameter, ipcache_srcid, is only required when
+		 * the srcID is not HOST_ID. For details, see
+		 * whitelist_snated_egress_connections.
+		 * We only arrive here from bpf_lxc if we know the
+		 * srcID is HOST_ID. Therefore, we don't need to pass a value
+		 * for the last parameter. That avoids an ipcache lookup.
+		 */
+		ret = ipv4_host_policy_egress(ctx, HOST_ID, 0);
+		break;
+# endif
+	default:
+		ret = DROP_UNKNOWN_L3;
+		break;
+	}
+
+	return ret;
+}
+
+__section_tail(CILIUM_MAP_POLICY, TEMPLATE_HOST_EP_ID)
+handle_lxc_traffic(struct __ctx_buff *ctx)
+{
+	bool from_host = ctx_load_meta(ctx, CB_FROM_HOST);
+	__u32 lxcID;
+	int ret;
+
+	if (from_host) {
+		ret = from_host_to_lxc(ctx);
+		if (IS_ERR(ret))
+			return send_drop_notify_error(ctx, HOST_ID, ret, CTX_ACT_DROP,
+						      METRIC_EGRESS);
+
+		lxcID = ctx_load_meta(ctx, CB_DST_ENDPOINT_ID);
+		tail_call_dynamic(ctx, &POLICY_CALL_MAP, lxcID);
+		return DROP_MISSED_TAIL_CALL;
+	}
+
+	return to_host_from_lxc(ctx);
+}
+#endif
+
 
 BPF_LICENSE("GPL");

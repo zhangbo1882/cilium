@@ -261,7 +261,6 @@ var _ = Describe("K8sDatapathConfig", func() {
 			deploymentManager.DeployCilium(map[string]string{
 				"tunnel":                 "vxlan",
 				"endpointRoutes.enabled": "true",
-				"hostFirewall":           "false",
 			}, DeployCiliumOptionsAndDNS)
 			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
 
@@ -312,7 +311,6 @@ var _ = Describe("K8sDatapathConfig", func() {
 				"tunnel":                 "disabled",
 				"k8s.requireIPv4PodCIDR": "true",
 				"endpointRoutes.enabled": "true",
-				"hostFirewall":           "false",
 			}, DeployCiliumOptionsAndDNS)
 
 			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
@@ -350,7 +348,6 @@ var _ = Describe("K8sDatapathConfig", func() {
 				"autoDirectNodeRoutes":   "true",
 				"endpointRoutes.enabled": "true",
 				"ipv6.enabled":           "false",
-				"hostFirewall":           "false",
 			}
 			// Needed to bypass bug with masquerading when devices are set. See #12141.
 			if helpers.RunsWithKubeProxy() {

@@ -15,7 +15,8 @@
 package node
 
 var (
-	labels map[string]string
+	labels     map[string]string
+	endpointID uint64
 )
 
 // GetLabels returns the labels of this node.
@@ -26,4 +27,14 @@ func GetLabels() map[string]string {
 // SetLabels sets the labels of this node.
 func SetLabels(l map[string]string) {
 	labels = l
+}
+
+// GetEndpointID returns the ID of the host endpoint for this node.
+func GetEndpointID() uint64 {
+	return endpointID
+}
+
+// SetLabels sets the ID of the host endpoint this node.
+func SetEndpointID(id uint64) {
+	endpointID = id
 }

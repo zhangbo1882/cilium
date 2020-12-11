@@ -13,6 +13,12 @@
 
 #define EVENT_SOURCE LXC_ID
 
+/* This macro controls the presence of host policy enforcement in header files
+ * (e.g., nodeport.h). We only want to compile that code when it is included
+ * from bpf_host.c.
+ */
+#define SKIP_HOST_FIREWALL_HANDLING
+
 #include "lib/tailcall.h"
 #include "lib/common.h"
 #include "lib/config.h"
@@ -292,6 +298,14 @@ ct_recreate6:
 						   METRIC_EGRESS, false);
 		}
 	}
+
+#if defined(ENABLE_HOST_FIREWALL) && !defined(ENABLE_ROUTING)
+	if (*dstID == HOST_ID) {
+		ctx_store_meta(ctx, CB_FROM_HOST, 0);
+		tail_call_static(ctx, &POLICY_CALL_MAP, HOST_EP_ID);
+		return DROP_MISSED_TAIL_CALL;
+	}
+#endif /* ENABLE_HOST_FIREWALL && !ENABLE_ROUTING */
 
 	/* The packet goes to a peer not managed by this agent instance */
 #ifdef ENCAP_IFINDEX
@@ -1456,6 +1470,12 @@ int handle_to_container(struct __ctx_buff *ctx)
 
 	send_trace_notify(ctx, trace, identity, 0, 0,
 			  ctx->ingress_ifindex, 0, TRACE_PAYLOAD_LEN);
+
+	if (identity == HOST_ID) {
+		ctx_store_meta(ctx, CB_FROM_HOST, 1);
+		tail_call_static(ctx, &POLICY_CALL_MAP, HOST_EP_ID);
+		return DROP_MISSED_TAIL_CALL;
+	}
 
 	ctx_store_meta(ctx, CB_SRC_LABEL, identity);
 
