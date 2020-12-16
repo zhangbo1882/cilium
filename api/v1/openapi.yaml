@@ -1924,6 +1924,8 @@ definitions:
         type: string
       masquerade:
         description: Status of masquerading feature
+      egress-multi-home-ip-rule-compat:
+        description: Configured compatibility mode for --egress-multi-home-ip-rule-compat
         type: boolean
   DatapathMode:
     description: Datapath mode
