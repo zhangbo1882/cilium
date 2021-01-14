@@ -1,0 +1,45 @@
+---
+# Source: cilium/templates/hubble-cli.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hubble-cli
+  labels:
+    k8s-app: hubble-cli
+  namespace: kube-system
+spec:
+  containers:
+  - name: hubble-cli
+    image: quay.io/cilium/hubble:latest
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: Always
+    volumeMounts:
+      - mountPath: /var/run/cilium
+        name: hubble-sock-dir
+        readOnly: true
+      - mountPath: /var/lib/hubble-relay/tls
+        name: tls
+        readOnly: true
+  restartPolicy: Always
+  volumes:
+  - hostPath:
+      path: /var/run/cilium
+      type: Directory
+    name: hubble-sock-dir
+  - name: tls
+    projected:
+      sources:
+      - secret:
+          name: hubble-relay-client-certs
+          items:
+            - key: tls.crt
+              path: client.crt
+            - key: tls.key
+              path: client.key
+      - configMap:
+          name: hubble-ca-cert
+          items:
+            - key: ca.crt
+              path: hubble-server-ca.crt

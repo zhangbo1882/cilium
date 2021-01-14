@@ -13,6 +13,7 @@ CERTGEN_VERSION := "v0.1.3"
 QUICK_INSTALL := "$(ROOT_DIR)/$(RELATIVE_DIR)/quick-install.yaml"
 QUICK_HUBBLE_INSTALL := "$(ROOT_DIR)/$(RELATIVE_DIR)/quick-hubble-install.yaml"
 EXPERIMENTAL_INSTALL := "$(ROOT_DIR)/$(RELATIVE_DIR)/experimental-install.yaml"
+HUBBLE_CLI := "$(ROOT_DIR)/$(RELATIVE_DIR)/hubble-cli.yaml"
 CILIUM_CHARTS := "$(ROOT_DIR)/$(RELATIVE_DIR)/cilium"
 CILIUM_VALUES := "$(CILIUM_CHARTS)/values.yaml"
 CHART_FILE := "$(CILIUM_CHARTS)/Chart.yaml"
@@ -39,6 +40,10 @@ EXPERIMENTAL_OPTIONS := \
     --set hubble.ui.enabled=true \
     --set localRedirectPolicy=true \
     --set operator.replicas=1
+HUBBLE_CLI_OPTIONS := \
+    --set agent=false \
+    --set operator.enabled=false \
+    --set hubble.cli.enabled=true
 
 DOCKER_RUN := $(CONTAINER_ENGINE) container run --rm \
 	--workdir /src/install/kubernetes \
@@ -53,7 +58,7 @@ HELM_DOCS := $(DOCKER_RUN) $(HELM_DOCS_IMAGE)
 LOGO_BASE_URL := https://cdn.jsdelivr.net/gh/cilium
 LOGO_PATH := Documentation/images/logo-solo.svg
 
-all: update-versions $(QUICK_INSTALL) $(EXPERIMENTAL_INSTALL) $(QUICK_HUBBLE_INSTALL) docs
+all: update-versions $(QUICK_INSTALL) $(EXPERIMENTAL_INSTALL) $(QUICK_HUBBLE_INSTALL) $(HUBBLE_CLI) docs
 
 $(QUICK_INSTALL) quick-install: $(shell find cilium/ -type f) update-versions
 	$(QUIET)helm template cilium cilium --namespace=kube-system $(QUICK_OPTIONS) > $(QUICK_INSTALL)
@@ -63,6 +68,9 @@ $(QUICK_HUBBLE_INSTALL) quick-hubble-install: $(shell find cilium/ -type f) upda
 
 $(EXPERIMENTAL_INSTALL) experimental-install: $(shell find cilium/ -type f) update-versions
 	$(QUIET)helm template cilium cilium --namespace=kube-system $(EXPERIMENTAL_OPTIONS) > $(EXPERIMENTAL_INSTALL)
+
+$(HUBBLE_CLI) hubble-cli: $(shell find cilium/ -type f) update-versions
+	$(QUIET)helm template cilium cilium --namespace=kube-system $(HUBBLE_CLI_OPTIONS) > $(HUBBLE_CLI)
 
 update-versions:
 	$(ECHO_GEN) " -> Updating version to $(VERSION)"
@@ -121,4 +129,4 @@ check-docker-images:
          CERTGEN_VERSION=$(CERTGEN_VERSION) \
          ../../contrib/release/check-docker-images.sh "v$(VERSION)"
 
-.PHONY: all check-docker-images clean docs experimental-install lint quick-install update-versions
+.PHONY: all check-docker-images clean docs quick-install quick-hubble-install experimental-install hubble-cli update-versions lint
