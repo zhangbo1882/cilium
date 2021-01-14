@@ -1126,17 +1126,18 @@ spec:
       serviceAccountName: hubble-relay
       terminationGracePeriodSeconds: 0
       volumes:
-      - configMap:
+      - name: config
+        configMap:
           name: hubble-relay-config
           items:
           - key: config.yaml
             path: config.yaml
-        name: config
-      - hostPath:
+      - name: hubble-sock-dir
+        hostPath:
           path: /var/run/cilium
           type: Directory
-        name: hubble-sock-dir
-      - projected:
+      - name: tls
+        projected:
           sources:
           - secret:
               name: hubble-relay-client-certs
@@ -1150,7 +1151,6 @@ spec:
               items:
                 - key: ca.crt
                   path: hubble-server-ca.crt
-        name: tls
 ---
 # Source: cilium/templates/hubble-ui-deployment.yaml
 kind: Deployment
