@@ -114,6 +114,10 @@ func DisableMapPreAllocation() {
 	atomic.StoreUint32(&preAllocateMapSetting, 1)
 }
 
+func GetMapPreAllocationSetting() uint32 {
+	return atomic.LoadUint32(&preAllocateMapSetting)
+}
+
 // GetPreAllocateMapFlags returns the map flags for map which use conditional
 // pre-allocation.
 func GetPreAllocateMapFlags(t MapType) uint32 {

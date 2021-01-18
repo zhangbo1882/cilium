@@ -47,23 +47,29 @@ var bpfMaglevGetCmd = &cobra.Command{
 		lookupTables := map[string][]string{}
 		found := false
 
-		for _, name := range []string{lbmap.MaglevOuter4MapName, lbmap.MaglevOuter6MapName} {
-			// See bpf_lb_maglev_list.go comment for why we use low-level routines
-			// to open and access the maps
-			if m, err := bpf.OpenMap(name); err != nil {
-				continue
-			} else {
-				err := bpf.LookupElement(m.GetFd(), key.GetKeyPtr(), val.GetValuePtr())
-				if err != nil {
-					if errors.Is(err, unix.ENOENT) {
-						continue
-					}
-					Fatalf("Unable to retrieve entry from %s with key %s: %s",
-						name, key, err)
-				} else {
-					found = true
-					parseMaglevEntry(key, val, lookupTables)
+		// Maglev maps require map preallocation to be enabled
+		// (otherwise we would get a flag mismatch with the existing map
+		// which would led to the recreation of the map)
+		if bpf.GetMapPreAllocationSetting() == 1 {
+			bpf.EnableMapPreAllocation()
+			defer bpf.DisableMapPreAllocation()
+		}
+
+		if err := lbmap.MaybeInitMaglevMapsByProbingTableSize(); err != nil {
+			Fatalf("Cannot initialize maglev maps: %s", err)
+		}
+
+		for name, m := range lbmap.GetOpenMaglevMaps() {
+			err := bpf.LookupElement(m.GetFd(), key.GetKeyPtr(), val.GetValuePtr())
+			if err != nil {
+				if errors.Is(err, unix.ENOENT) {
+					continue
 				}
+				Fatalf("Unable to retrieve entry from %s with key %s: %s",
+					name, key, err)
+			} else {
+				found = true
+				parseMaglevEntry(key, val, lookupTables)
 			}
 		}
 

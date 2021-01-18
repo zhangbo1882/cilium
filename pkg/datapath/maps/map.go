@@ -147,7 +147,7 @@ func (ms *MapSweeper) RemoveDisabledMaps() {
 			"cilium_lb6_reverse_sk",
 			"cilium_snat_v6_external",
 			"cilium_proxy6",
-			lbmap.MaglevOuter6MapName,
+			lbmap.MaglevOuter6MapName(uint64(option.Config.MaglevTableSize)),
 			lbmap.Affinity6MapName,
 			lbmap.SourceRange6MapName,
 			lbmap.HealthProbe6MapName,
@@ -167,7 +167,7 @@ func (ms *MapSweeper) RemoveDisabledMaps() {
 			"cilium_lb4_reverse_sk",
 			"cilium_snat_v4_external",
 			"cilium_proxy4",
-			lbmap.MaglevOuter4MapName,
+			lbmap.MaglevOuter4MapName(uint64(option.Config.MaglevTableSize)),
 			lbmap.Affinity4MapName,
 			lbmap.SourceRange4MapName,
 			lbmap.HealthProbe4MapName,
@@ -192,7 +192,9 @@ func (ms *MapSweeper) RemoveDisabledMaps() {
 	}
 
 	if option.Config.NodePortAlg != option.NodePortAlgMaglev {
-		maps = append(maps, lbmap.MaglevOuter6MapName, lbmap.MaglevOuter4MapName)
+		maps = append(maps,
+			lbmap.MaglevOuter6MapName(uint64(option.Config.MaglevTableSize)),
+			lbmap.MaglevOuter4MapName(uint64(option.Config.MaglevTableSize)))
 	}
 
 	if !option.Config.EnableSessionAffinity {
