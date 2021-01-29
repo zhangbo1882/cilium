@@ -28,10 +28,10 @@ RUN update-alternatives \
 #
 # Go-based tools for runtime image
 #
-FROM docker.io/library/golang:1.15.7 as gops
+FROM docker.io/library/golang:1.16rc1 as gops
 WORKDIR /tmp
 # when updating this version, also update images/runtime/build-gops.sh
-RUN go get -d github.com/google/gops && \
+RUN GOPATH=/go GO111MODULE=off go get -d github.com/google/gops && \
     cd /go/src/github.com/google/gops && \
     git checkout -b v0.3.14 v0.3.14 && \
     git --no-pager remote -v && \
