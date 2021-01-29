@@ -28,8 +28,14 @@ type MapSpec = ciliumebpf.MapSpec
 
 const (
 	PerCPUHash = ciliumebpf.PerCPUHash
+	Array      = ciliumebpf.Array
+	HashOfMaps = ciliumebpf.HashOfMaps
 
 	PinByName = ciliumebpf.PinByName
+)
+
+var (
+	ErrKeyNotExist = ciliumebpf.ErrKeyNotExist
 )
 
 // IterateCallback represents the signature of the callback function expected by
@@ -53,6 +59,17 @@ func NewMap(spec *MapSpec) *Map {
 	}
 }
 
+func MapFromID(id int) (*Map, error) {
+	m, err := ciliumebpf.NewMapFromID(ciliumebpf.MapID(id))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Map{
+		Map: m,
+	}, nil
+}
+
 // OpenOrCreate tries to open or create the eBPF map identified by the spec in
 // the Map object.
 func (m *Map) OpenOrCreate() error {
@@ -61,6 +78,12 @@ func (m *Map) OpenOrCreate() error {
 
 	if m.Map != nil {
 		return nil
+	}
+
+	// The map's spec is not guaranteed to be defined if for example the map
+	// is created from a FD or ID.
+	if m.spec == nil {
+		return fmt.Errorf("unable to create map: map's spec is nil")
 	}
 
 	opts := ciliumebpf.MapOptions{

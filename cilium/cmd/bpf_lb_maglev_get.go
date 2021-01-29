@@ -15,16 +15,14 @@
 package cmd
 
 import (
-	"errors"
 	"strconv"
 
-	"github.com/cilium/cilium/pkg/bpf"
 	"github.com/cilium/cilium/pkg/command"
 	"github.com/cilium/cilium/pkg/common"
+	"github.com/cilium/cilium/pkg/ebpf"
 	"github.com/cilium/cilium/pkg/maps/lbmap"
 
 	"github.com/spf13/cobra"
-	"golang.org/x/sys/unix"
 )
 
 var bpfMaglevGetCmd = &cobra.Command{
@@ -47,30 +45,23 @@ var bpfMaglevGetCmd = &cobra.Command{
 		lookupTables := map[string][]string{}
 		found := false
 
-		// Maglev maps require map preallocation to be enabled
-		// (otherwise we would get a flag mismatch with the existing map
-		// which would led to the recreation of the map)
-		if bpf.GetMapPreAllocationSetting() == 1 {
-			bpf.EnableMapPreAllocation()
-			defer bpf.DisableMapPreAllocation()
-		}
-
-		if err := lbmap.MaybeInitMaglevMapsByProbingTableSize(); err != nil {
+		tableSize, err := lbmap.MaybeInitMaglevMapsByProbingTableSize()
+		if err != nil {
 			Fatalf("Cannot initialize maglev maps: %s", err)
 		}
 
 		for name, m := range lbmap.GetOpenMaglevMaps() {
-			err := bpf.LookupElement(m.GetFd(), key.GetKeyPtr(), val.GetValuePtr())
+			err := m.Lookup(key, val)
 			if err != nil {
-				if errors.Is(err, unix.ENOENT) {
+				if err == ebpf.ErrKeyNotExist {
 					continue
 				}
-				Fatalf("Unable to retrieve entry from %s with key %s: %s",
+				Fatalf("Unable to retrieve entry from %s with key %v: %s",
 					name, key, err)
-			} else {
-				found = true
-				parseMaglevEntry(key, val, lookupTables)
 			}
+
+			found = true
+			parseMaglevEntry(key, val, tableSize, lookupTables)
 		}
 
 		if !found {

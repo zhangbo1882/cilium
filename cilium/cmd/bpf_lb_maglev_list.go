@@ -16,11 +16,9 @@ package cmd
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/spf13/cobra"
 
-	"github.com/cilium/cilium/pkg/bpf"
 	"github.com/cilium/cilium/pkg/command"
 	"github.com/cilium/cilium/pkg/common"
 	"github.com/cilium/cilium/pkg/maps/lbmap"
@@ -48,45 +46,38 @@ var bpfMaglevListCmd = &cobra.Command{
 	},
 }
 
-func parseMaglevEntry(key bpf.MapKey, value bpf.MapValue, tables map[string][]string) {
-	k := key.(*lbmap.MaglevOuterKey)
-	v := value.(*lbmap.MaglevOuterVal)
-
-	table := make([]uint16, lbmap.MaglevTableSize)
-	zero := uint32(0)
-	fd, err := bpf.MapFdFromID(int(v.FD))
+func parseMaglevEntry(key *lbmap.MaglevOuterKey, value *lbmap.MaglevOuterVal, tableSize uint64, tables map[string][]string) {
+	innerMap, err := lbmap.MaglevInnerMapFromID(int(value.FD), tableSize)
 	if err != nil {
-		Fatalf("Unable to get map fd by id %d: %s", v.FD, err)
+		Fatalf("Unable to get map fd by id %d: %s", value.FD, err)
 	}
-	if err := bpf.LookupElement(int(fd), unsafe.Pointer(&zero), unsafe.Pointer(&table[0])); err != nil {
-		Fatalf("Unable to lookup element in map by fd %d: %s", fd, err)
+
+	innerKey := lbmap.MaglevInnerKey{
+		Zero: 0,
 	}
-	tables[k.ToNetwork().String()] = []string{fmt.Sprintf("%v", table)}
+	innerValue, err := innerMap.Lookup(&innerKey)
+	if err != nil {
+		Fatalf("Unable to lookup element in map by fd %d: %s", value.FD, err)
+	}
+
+	tables[fmt.Sprintf("%d", key.ToNetwork().RevNatID)] = []string{fmt.Sprintf("%v", innerValue.BackendIDs)}
 }
 
 func dumpMaglevTables(tables map[string][]string) {
-	// Maglev maps require map preallocation to be enabled (otherwise we
-	// would get a flag mismatch with the existing map which would led to
-	// the recreation of the map)
-	if bpf.GetMapPreAllocationSetting() == 1 {
-		bpf.EnableMapPreAllocation()
-		defer bpf.DisableMapPreAllocation()
-	}
-
-	if err := lbmap.MaybeInitMaglevMapsByProbingTableSize(); err != nil {
+	tableSize, err := lbmap.MaybeInitMaglevMapsByProbingTableSize()
+	if err != nil {
 		Fatalf("Cannot initialize maglev maps: %s", err)
 	}
 
-	parse := func(key bpf.MapKey, value bpf.MapValue) {
-		parseMaglevEntry(key, value, tables)
+	parse := func(key *lbmap.MaglevOuterKey, value *lbmap.MaglevOuterVal) {
+		parseMaglevEntry(key, value, tableSize, tables)
 	}
 
 	for name, m := range lbmap.GetOpenMaglevMaps() {
-		if err := m.DumpWithCallback(parse); err != nil {
+		if err := m.IterateWithCallback(parse); err != nil {
 			Fatalf("Unable to dump %s: %v", name, err)
 		}
 	}
-
 }
 
 func init() {
