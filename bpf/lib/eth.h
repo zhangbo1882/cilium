@@ -6,9 +6,10 @@
 
 #include <linux/if_ether.h>
 
-#ifndef ETH_HLEN
-#define ETH_HLEN 14
-#endif
+//#ifndef ETH_HLEN
+//DEFINE_U32(ETH_HLEN, 14);
+//#define ETH_HLEN 14
+//#endif
 
 #ifndef ETH_ALEN
 #define ETH_ALEN 6

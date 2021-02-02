@@ -10,6 +10,8 @@
 #define SKIP_POLICY_MAP	1
 #define SKIP_CALLS_MAP	1
 
+#define ETH_HLEN 14
+
 #include "lib/common.h"
 #include "lib/lb.h"
 #include "lib/eps.h"

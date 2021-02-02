@@ -13,6 +13,8 @@
 
 #define EVENT_SOURCE LXC_ID
 
+//#define ETH_HLEN 14
+
 #include "lib/tailcall.h"
 #include "lib/common.h"
 #include "lib/config.h"

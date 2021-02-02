@@ -13,6 +13,8 @@
  */
 #include "lib/utils.h"
 
+DEFINE_U32(ETH_HLEN, 14);
+
 DEFINE_MAC(NODE_MAC, 0xde, 0xad, 0xbe, 0xef, 0xc0, 0xde);
 #define NODE_MAC fetch_mac(NODE_MAC)
 

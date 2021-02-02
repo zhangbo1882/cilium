@@ -532,6 +532,8 @@ func (h *HeaderfileWriter) WriteNetdevConfig(w io.Writer, cfg datapath.DeviceCon
 // writeStaticData writes the endpoint-specific static data defines to the
 // specified writer. This must be kept in sync with loader.ELFSubstitutions().
 func (h *HeaderfileWriter) writeStaticData(fw io.Writer, e datapath.EndpointConfiguration) {
+	fmt.Fprint(fw, defineUint32("ETH_HLEN", 14))
+
 	if e.IsHost() {
 		if option.Config.EnableNodePort {
 			// Values defined here are for the host datapath attached to the

@@ -149,6 +149,8 @@ func patchHostNetdevDatapath(ep datapath.Endpoint, objPath, dstPath, ifName stri
 
 	opts, strings := ELFSubstitutions(ep)
 
+	opts["ETH_HLEN"] = uint32(14)
+
 	// The NODE_MAC value is specific to each attachment interface.
 	mac, err := link.GetHardwareAddr(ifName)
 	if err != nil {
@@ -156,6 +158,7 @@ func patchHostNetdevDatapath(ep datapath.Endpoint, objPath, dstPath, ifName stri
 	}
 	if mac == nil {
 		mac = make([]byte, 6)
+		opts["ETH_HLEN"] = uint32(0)
 	}
 	opts["NODE_MAC_1"] = sliceToBe32(mac[0:4])
 	opts["NODE_MAC_2"] = uint32(sliceToBe16(mac[4:6]))

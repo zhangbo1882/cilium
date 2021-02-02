@@ -897,6 +897,8 @@ handle_netdev(struct __ctx_buff *ctx, const bool from_host)
 {
 	__u16 proto;
 
+	cilium_dbg_capture(ctx, DBG_CAPTURE_DELIVERY, 100 + NATIVE_DEV_IFINDEX);
+
 	if (!validate_ethertype(ctx, &proto)) {
 #ifdef ENABLE_HOST_FIREWALL
 		int ret = DROP_UNSUPPORTED_L2;

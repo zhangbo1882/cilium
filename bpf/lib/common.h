@@ -12,6 +12,7 @@
 #include <linux/in.h>
 #include <linux/socket.h>
 
+#include "eth.h"
 #include "endian.h"
 #include "mono.h"
 #include "config.h"
@@ -107,11 +108,40 @@ static __always_inline bool validate_ethertype(struct __ctx_buff *ctx,
 	void *data_end = ctx_data_end(ctx);
 	struct ethhdr *eth = data;
 
+	if (ETH_HLEN == 0) {
+		*proto = bpf_htons(ETH_P_IP);
+		return true;
+	}
+
 	if (data + ETH_HLEN > data_end)
 		return false;
 	*proto = eth->h_proto;
 	if (bpf_ntohs(*proto) < ETH_P_802_3_MIN)
 		return false; /* non-Ethernet II unsupported */
+	return true;
+}
+
+static __always_inline __maybe_unused bool
+__revalidate_data_pull_eth(struct __ctx_buff *ctx, void **data_, void **data_end_,
+		       void **l3, const __u32 l3_len, const bool pull, int eth_len)
+{
+	const __u32 tot_len = eth_len + l3_len;
+	void *data_end;
+	void *data;
+
+	/* Verifier workaround, do this unconditionally: invalid size of register spill. */
+	if (pull)
+		ctx_pull_data(ctx, tot_len);
+	data_end = ctx_data_end(ctx);
+	data = ctx_data(ctx);
+	if (data + tot_len > data_end)
+		return false;
+
+	/* Verifier workaround: pointer arithmetic on pkt_end prohibited. */
+	*data_ = data;
+	*data_end_ = data_end;
+
+	*l3 = data + eth_len;
 	return true;
 }
 
@@ -162,6 +192,9 @@ __revalidate_data_pull(struct __ctx_buff *ctx, void **data_, void **data_end_,
  */
 #define revalidate_data(ctx, data, data_end, ip)			\
 	__revalidate_data_pull(ctx, data, data_end, (void **)ip, sizeof(**ip), false)
+
+#define revalidate_data_eth(ctx, data, data_end, ip, eth_len)			\
+	__revalidate_data_pull_eth(ctx, data, data_end, (void **)ip, sizeof(**ip), false, eth_len)
 
 /* Macros for working with L3 cilium defined IPV6 addresses */
 #define BPF_V6(dst, ...)	BPF_V6_1(dst, fetch_ipv6(__VA_ARGS__))
