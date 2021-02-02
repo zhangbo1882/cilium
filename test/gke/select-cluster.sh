@@ -76,9 +76,6 @@ gcloud container clusters describe --project "${project}" --region "${region}" -
 gcloud container clusters describe --project "${project}" --region "${region}" --format='value(currentMasterVersion)' "${cluster_uri}" \
   | sed -E 's/([0-9]+\.[0-9]+)\..*/\1/' | tr -d '\n' > "${script_dir}/cluster-version"
 
-echo "cleaning cluster before tests"
-"${script_dir}"/clean-cluster.sh
-
 echo "creating cilium ns"
 kubectl create ns cilium || true
 
